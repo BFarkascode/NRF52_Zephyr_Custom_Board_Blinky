@@ -99,14 +99,20 @@ We can check the external board is connected up with the Segger probe by checkin
 
 ## Previous relevant projects:
 Ther official nrf52 training on Fundamentals level (and the Intermediate level for the custom board section):
+
 [nRF Connect SDK Fundamentals - Nordic Developer Academy](https://academy.nordicsemi.com/courses/nrf-connect-sdk-fundamentals/)
+
 Also, the first five and the last of Shawn Hymel’s videos are very good guidelines, albeit he is doing everything manually which makes it a lot more complicated and tedious than what it actually is when using Zephyr directly:
+
 [Introduction to Zephyr Part 1: Getting Started - Installation and Blink | DigiKey](https://www.youtube.com/watch?v=mTJ_vKlMS_4&list=PLEBQazB0HUyTmK2zdwhaf8bLwuEaDH-52)
 
 ## To read
 The Zephyr documentation (especially the board porting guide section):
+
 [Introduction — Zephyr Project Documentation](https://docs.zephyrproject.org/latest/introduction/index.html)
+
 And the NRF52840DK board documentation:
+
 [nRF52840 DK Hardware](https://docs.nordicsemi.com/bundle/ug_nrf52840_dk/page/UG/dk/intro.html)
 
 ## Particularities
