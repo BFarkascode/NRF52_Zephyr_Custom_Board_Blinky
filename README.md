@@ -207,15 +207,11 @@ The files are:
 -	Board CMakeLists: this is there to set up the emulator and make it look for the nrf52811 files/drivers 
 
 ## User guide
-I am simple sharing the custom board definition files to a nrf52840 board that is ONLY doing a blinky by hardware.
-The cpu defconfig was carried over (except for the name of the file) from the DK, meaning we are using the same cpu default configuration as was on the DK board. This file, independent of what you name it, MUST finish with “_defconfig”, otherwise it won’t be loaded into the project.
+There are two folders, one for each bit of this project.
 
-Board Kconfig is slightly cut since we don’t need to specify the chip for the build here.
+The DK version must be built using the provided DK board file without overlays.
 
-Same can be said about the board cmake file where any reference to the nrf52811 was removed.
-
-Of note, in the shared dts file, I have decided to keep some unused bits such as the uart0 (status turned to “disabled”) and button0 bits since uart0 is potentially used for debugging and the designated button (on gpiote (!) peripheral) is used for resetting the DK board. Both could be removed from the example, I left them in just in case I need them. Similarly, I made a pinctrl dtsi file, through this can again be omitted for the blinky example since we are only setting up the uart0 in it.
-Board yaml was rewritten to align with custom board naming.
+Within the custom board definition, we are defining a complete board, so again, no overlays. The cpu defconfig was carried over (except for the name of the file) from the DK, meaning we are using the same cpu default configuration as was on the DK board. This file, independent of what you name it, MUST finish with “_defconfig”, otherwise it won’t be loaded into the project. Board Kconfig is slightly cut since we don’t need to specify the chip for the build here. Same can be said about the board cmake file where any reference to the nrf52811 was removed. Of note, in the shared dts file, I have decided to keep some unused bits such as the uart0 (status turned to “disabled”) and button0 bits since uart0 is potentially used for debugging and the designated button (on gpiote (!) peripheral) is used for resetting the DK board. Both could be removed from the example, I left them in just in case I need them. Similarly, I made a pinctrl dtsi file, through this can again be omitted for the blinky example since we are only setting up the uart0 in it. Board yaml was rewritten to align with custom board naming.
 
 Lastly, in order to recognize the new custom board, it may be necessary to restart VsCode.
 
