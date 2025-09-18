@@ -2,71 +2,82 @@
 Using Zephyr to set up a Blinky on a NRF52840DK board as well as a custom board running the nrf52840 mcu. This is the first in a line of projects to explain, how Zephyr works.
 
 ## General description
-Zephyr is a software package that is more and more commonly implemented into mcu-s. It is a whole bunch of libraries as well as an integrated multithreading plus stacks to run WiFi and Bluetooth, only wrapped up and provided to users. It is pretty much ST’s HAL merged with FreeRTOS plus com stacks.
+Zephyr is a software package that is more and more commonly implemented into mcu-s. It is a whole bunch of libraries as well as an integrated multithreading opertaing system, plus stacks to run WiFi and Bluetooth. It is pretty much ST’s HAL merged with FreeRTOS plus the aforementioned com stacks.
 
-Why is good? Well, because the hardware layers are completely detached from the application, meaning that an appropriately written app can be ported to any Zephyr-compatible device without changing the app. One merely would need to adjust the hardware layers. In some sense, this makes Zephyr similar to how FPGA hardware is set separate to the Verilog/VHDL coding, often times using its own syntax and programming language.
+Why is it good? Well, because the hardware layers are completely detached from the application, meaning that an appropriately written app can be ported to any Zephyr-compatible device without changing the app. One merely would need to adjust the hardware layers. In some sense, this makes Zephyr similar to how FPGA hardware is set separate to the Verilog/VHDL coding.
 
-Why do I want to bother with Zephyr?
+Fine, but why do I want to bother with Zephyr?
 
-Zephyr is the go-to environment used on Nordic’s chips, something I have been looking at to run BLE ever since I have failed to be impressed by ST’s WB5 mcu-s. Yes, some nrf52’s are compatible with Arduino (Adafruit ItsyBitsy comes to mind), but those solutions hardly are the most efficient ways to run these devices. Thus, I have decided to get a grip on Zephyr and implement it into some of my future projects.
+Zephyr is the go-to environment used on Nordic’s chips, something I have been looking into to run BLE ever since I have failed to be impressed by ST’s WB5 mcu-s. Also, some nrf52’s are compatible with Arduino (Adafruit ItsyBitsy comes to mind) to do some quick tests, albeit those solutions hardly are the most efficient ways to run these devices, making them not preferred for professional desings. At any rate, I have decided to get a grip on Zephyr and implement it into some of my future projects.
 
-This repo is my notebook on Zephyr with a small blinky project to close it.
+This repo is the first of my notebooks on Zephyr with a small blinky project implemented on an official nordic DK board and a custom board of my own making. I am sharing the code for both, albeit the DK version should rather be done using the sample project available in Zephyr.
 
 ### Disclaimer
-I am using the nrf52840DK board as the baseline for the project with a custom board running another nrf52840 as the external device. I have chosen the nrf52840 because it is a single core mcu which makes it a lot easier to train on compared to other chips from Nordic, such as the nrf53.
+I am using the nrf52840DK board as the baseline for the project with all the related Zephyr board definition files already existing. A custom board running another nrf52840 will be used as an external device. This custom board can be easily "emulated" by the DK board, one merely needs to build the project for that particular board.
+
+I have chosen the nrf52840 because it is a single core mcu which makes it a lot easier to train on compared to other chips from Nordic, such as the nrf53.
 
 I will assume that anyone checking my notes are using VSCode with the nrf Connect plugin to program up the nrf52840. I will be referring to VSCode sections regularly.
 
 ## What makes Zephyr tick
-Zephyr is an entire environment that must be handled as a package. It isn’t easy to get into, mostly because one needs to get a grip of some rather unique components of Zephyr right off the bat for even the simplest of apps, such as a basic blinky. These elements must follow a certain set of rules/syntax which, if breached, may not result in an obvious error during project build, but would still prevent us from receiving the output we were aiming for.
+Zephyr is an entire environment that is handled as a package. It isn’t easy to get into, mostly because one needs to get a grip of some rather unique components of Zephyr right off the bat, even for the simplest of apps, such as a basic blinky. These elements must follow a certain set of rules/syntax which, if breached, may not result in an obvious error during project build, but would still prevent us from receiving the output we were aiming for.
 
-Anyway, let’s look at the most basic bits and see, how they fit together in a build. 
+Anyway, let’s look at the most basic bits of Zephyr and see, how they fit together in a build. 
 
 ### Hardware definition/device tree
-A device tree is a file that holds the description of the hardware, be that just the chip we are using (as it is with the dtsi files) or the board we are running (the dts files).
+A device tree is a file that holds the description of the hardware, be that just the chip/soc we are using (as it is with the dtsi files) or the board we are running (the dts files).
 
-Dtsi files are, for the most part, defined by the chip we are running on the board where they describe the peripherals, the memory allocation, the clocking and so on of the chip itself. Think a mix of ST’s linker file (where we define the different memory allocation addressing and MSP placement) with the device peripheral description file (usually similar to “stm32f429xx.h”) defining the memory addresses of the peripherals within the mcu. There are multiple dtsi files sprinkled all around Zephyr:
--	“pinctrl” defines the baseline pin/peripheral connection, i.e. where – which pins - certain peripherals would be connected to
+Dtsi files are, for the most part, defined by the soc we are running on the board where they describe the peripherals (memory addresses), the memory allocation, the clocking and so on of the chip itself. Think a mix of ST’s linker file (where we define the different memory allocation addressing and MSP placement) with the device peripheral description file (usually similar to “stm32f429xx.h”) defining the memory addresses of the peripherals within the mcu.
+
+There are multiple dtsi files sprinkled all around Zephyr:
+-	“pinctrl” defines the baseline pin/peripheral connection, i.e. where – which pins - certain peripherals would be connected to.
 -	“qiaa” is where we have the power regulator and the base memory allocation
 -	“partition” is where we allocate memory sections to boot and app
--	“nrf52840” (or whatever our chip is called) is where the cpu’s selection is done (in case of multiple cores), the memory addresses of peripherals is defined with the size of related drivers, plus the clocking. (These are all chip level values and ARE NOT adjusted to the board we are running!)
+-	“nrf52840” (or whatever our chip is called) is where the cpu’s selection is done (in case of multiple cores), the memory addresses of peripherals is defined with the size of related drivers, plus the clocking. These are all chip level values and ARE NOT adjusted to the board we are running!
 -	Driver overlay dtsi files, which are there to ensure compatibility with other devices than what nordic is providing (we won’t be needing these ones since we are using the nrf52840 chip)
+
 At the end of the day, dtsi files define our chips as they come off from the production line, giving everything t a baseline value.
 
-Dts files on the other hand, are define for boards, not chips and modify the dtsi values of the chips to match with whatever way the board is connected up. This means changing pin distribution, putting pull resistors on appropriate pins, adjusting voltage regulators, enabling and configuring peripherals. Think setting things up using CubeMx’s board selector as a parallel in ST’s environment. Of note, since we build every project to a particular board, selecting the right dts file is crucial to have the expected result after building and flashing our project to our device.
+Dts files on the other hand, are define for boards, not chips and modify the dtsi values of the chips to match with whatever way the board is connected up. This means adjusting voltage regulators, enabling and configuring peripherals. Think setting things up using CubeMx’s board selector as a parallel in ST’s environment. Of note, since we build every project to a particular board, selecting the right dts file is crucial to have the expected result after building and flashing our project to our device.
 
-But, what if we don’t want to use the factory device tree values and would instead want to modify the output of this existing board? That’s where “overlay” files come to play. These files are applied as – you guessed it - overlays on any existing device tree to adjust it to our need. They are NOT modifying the existing board definition code though. Overlays follow the same syntax and philosophy as dts and dtsi files and MUST be indicated within the build parameters of the project or we would end up building for the “factory” board definition, not our custom one. Overlay files can be applied on existing dts/dtsi definitions – i.e., existing board – to change the pre-set values according to what we need, such as choosing another GPIO for a LED or moving the uart/spi/i2c to an alternative set of pins (i.e., what we would do as an “init” function for the peripheral in STM32, we do it here within the overlay). Obviously, if we running a custom board, we don’t need an overlay. Instead, we need to define our own dts file from stratch.
+Pin definition will be either done in the dts file, or for peripherals, in a pinctrl dtsi file. Of note, there is a soc specific version of this file that sets the "out of the box" values for all peripherals, but there will be a proejct specific version as well that will adjust them to the project. This is necessary since many Zephyr compatible devices - such as our nrf52 - leaves the muxing of peripherals to the users, allowing is high flexbility on how we want to set up the pins. We will take a look into that in a later repo...
+
+Anyway, what if we don’t want to use the factory device tree values and would instead want to modify the output of this existing board? That’s where “overlay” files come to play. These files are applied as – you guessed it - overlays on any existing device tree to adjust it to our need. They are NOT modifying the existing board definition code though. Overlays follow the same syntax and philosophy as dts and dtsi files and MUST be indicated within the build parameters of the project or we would end up building for the “factory” board definition, not our custom one. Overlay files can be applied on existing dts/dtsi definitions – i.e., existing board – to change the pre-set values according to what we need, such as choosing another GPIO for a LED or moving the uart/spi/i2c to an alternative set of pins (i.e., what we would do as an “init” function for the peripheral in STM32, we do it here within the overlay). Obviously, if we running a custom board, we don’t need an overlay. Instead, we need to define our own dts/dtsi files from stratch. We will only look into a simple version of this below.
 
 #### A taxing syntax of device trees
 All files above share the same syntax where we define nodes and sub-nodes in a tree-like fashion.
 
 At the lowest level of the tree, we will have nodes that will have a set of properties that are defined for that node to function properly (think pin assignment or baud rate). The actual properties of each node are coming from the yaml file (see below) while we define the “type” of each node by setting up their compatibility (i.e., which yaml file will hold its properties).
 
-The dtsi files will already define properties for pretty much everything, but they might now enable the peripherals. That’s the “status” line which has to be “okay” to enable the peripheral (“disabled” for turning it off).
+The dtsi files will already define properties for pretty much everything, but they might not enable the peripherals. That’s the “status” line which has to be “okay” to enable the peripheral (“disabled” for turning it off).
 
 We can give nodes “labels” which will then allow us to call that node through its label instead of the name of the actual node. Labels will be define by putting the name with a double dot before the node’s name (led0: led_0 – led0 is the label, led_0 is the node’s name).
 
-Similarly, we can define “aliases” for nodes (referenced by their labels or node names) and organise these aliases in whatever way that we fancy (labels are individual to the original device tree). A well-defined set of aliases allow us to only reference any node through the aliases and then adjust what each alias means when we port our code to different devices. Changing an alias is easier and faster than digging for node labels or node names. Aliases – be then for dts or dtsi values - are usually piled in the same place in a board’s dts file. We define an alias by defining an “aliases” array and then make the alias equal to the address of the node label’s address (aliases {led = &led0;}; - led is the alias for the led0 label).
+Similarly, we can define “aliases” for nodes (referenced by their labels or node names) and organise these aliases in whatever way that we fancy (labels are individual to the original device tree). A well-defined set of aliases allow us to only reference any node through the aliases and then adjust what each means when we port our code to different devices. Changing an alias is easier and faster than digging for node labels or node names. Aliases are usually piled in the same place in a board’s dts file. (We define an alias by defining an “aliases” array and then make the alias equal to the address of the node label’s address (aliases {led = &led0;}; - led is the alias for the led0 label).
 
 The ”chosen” can be used to assign certain functions to nodes, such as piping uart0 to the Zephyr console (think the redirection of printf to debug uart in ST devices).
 
-It is important to understand what the difference is between node names, labels and aliases since we are using separate macros to then reference the underlying nodes depending on which information we have available for the node. Node names, labels and aliases can be whatever we want them to be as long as they are made compatible with the right node type and given the appropriate properties/values.
+Node names, labels and aliases can be whatever we want them to be as long as they are made compatible with the right node type and given the appropriate properties/values.
+
+It is important to understand what the difference is between node names, labels and aliases though since we are using separate macros to reference the underlying nodes depending on which information we have available for the node.
 
 #### Blueberry yaml
-One file I have not touched upon yet are bindings files in format “yaml”. They are integral part of a device tree whereas they define the properties of each node through the “compatibility” section – compatibility section attaching the designated binding file to the node using the designated “compatibility” element within the binding file (usually the same as the name of the binding file). Looking at it from a different point of view, yaml files define the driver parameters we need to provide to a driver through a node. If we intend to write our own driver, we will need to write our own driver (module for Zephyr) yaml file and adjust the kconfig and cmake files so Zephyr can implement it. (We won’t be doing that here. )
+One file I have not touched upon yet are bindings files in format “yaml”. They are integral part of a device tree whereas they define the properties of each node through the “compatibility” section – compatibility section attaching the designated binding file to the node using the designated “compatibility” element within the binding file (usually the same as the name of the binding file). Looking at it from a different point of view, yaml files define the driver parameters we need to provide to a driver through a node. If we intend to write our own driver (i.e., module for Zephyr), we will need to write our own driver yaml file and adjust the kconfig and cmake files so Zephyr can implement it. (We won’t be doing that here to limit complexity.)
 
-Yaml files hold the types of nodes we can have in our device. In general, it is extremely unlikely that we would need to define new nodes, even if we are to work on a custom board and do a dts file from scratch. Yaml has its own syntax.
+Yaml files hold the types of nodes we can have in our device. In general, it is extremely unlikely that we would need to define new nodes, even if we are to work on a custom board and do a dts file from scratch.
 
-Of note, there are other yaml files, though these will matter for the build process only (see below).
+Of note, yaml has its own syntax.
 
-### Macros…macros everywhere
-As mentioned above, we have multiple ways to refer to a node. What is common for all is that the used macros will allow access to the node, making us capable to read whatever parameters are stored within (think pin distro, baud rate or even peripheral memory address). This step MUST be done, otherwise the peripheral drivers will not know, what parameters they should be running on.
+Of note-of note, there are other (not node related) yaml files too, though these will matter for the build process only (see below).
+
+### Macros…macros everywhere!
+As mentioned above, we have multiple ways to refer to a node. What is common for all is that the macro will allow access to the node, making us capable to read whatever parameters are stored within (think pin distro, baud rate or even peripheral memory address). This step MUST be done, otherwise the peripheral drivers will not know, what parameters they should be running on.
 
 We use DT_NODELABEL() if we have a node’s label and DT_ALIAS() if we have a node’s alias. The output in both cases is the same: an access point to the node. Technically, a pointer to the node.
 
 We need to use this macro-extracted access point then to interact with the node, by, for instance, reading out a property of the node using DT_PROP(). An example: DT_PROP(DT_NODELABEL(node1_label), foo) will read out the “foo” property from whatever node is under the node1_label node label.
 
-Of note, getting access to the node IS NOT the same as having the device pointer set up. We need DEVICE_DT_GET() macro with the access point provided above to have the pointer for the actual peripheral. The macro will then turn the node into a struct in c. The “device_is_ready()” function is then called on the pointer to check if the peripheral is properly calibrated and running. It is highly recommended to do this check on any peripheral before using it. A pointer to the node – which calibrates the peripheral – IS NOT the same as a pointer for the device which will already have the driver included already. Think that the node pointer loads the peripheral driver with the node values to actually run the peripheral.
+Of note, getting access to the node IS NOT the same as having the device pointer set up. We need DEVICE_DT_GET() macro with the access point provided above to have the pointer for the actual peripheral. The macro will then turn the node into a struct in c: Node references are usuaully complex structs, layered handles that hold all the configuration information for the peripheral as well as any inputs and outputs we want to have in it. The “device_is_ready()” function is then called on the pointer to check if the peripheral is properly calibrated and running. It is highly recommended to do this check on any peripheral before using it. A pointer to the node – which calibrates the peripheral – IS NOT the same as a pointer for the device which will already have the driver included already. Think that the node pointer loads the peripheral driver with the node values to actually run the peripheral.
 
 Mind, for GPIOs, we need to use the macro GPIO_DT_SPEC_GET() to extract the pointer with the struct called “gpio_dt_spec”. The function “gpio_is_ready_dt()” is the used to check if the GPIOs are set properly.
 
